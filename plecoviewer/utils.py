@@ -2,35 +2,15 @@ import sqlite3
 from sqlite3 import Error
 
 
-def main():
-
-    database = "flashbackup-1905020007.pqb"
-
-    backup = Backup(database)
-
-
-    pass
-
-
-
-
-
-
-
-
-
-
 class Backup():
     def __init__(self, database_path):
         self.path = database_path
 
         with self.create_connection(self.path) as self.conn:
-            print("1. Query all cards")
             self.cards = self.get('cards')  # Key: Card ID
             self.categories = self.get('categories')  # Key: Category ID
             self.category_assigns = self.get('categoryassigns')  # Key: Card ID
             self.score_files = self.get_score_files()  # Key: Scorefile name
-        
 
     @staticmethod
     def create_connection(db_file):
@@ -66,7 +46,3 @@ class Entry(dict):
     def __init__(self, *args, **kwargs):
         super(Entry, self).__init__(*args, **kwargs)
         self.__dict__ = self
-
-
-if __name__ == '__main__':
-    main()
