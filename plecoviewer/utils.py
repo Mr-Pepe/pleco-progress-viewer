@@ -105,3 +105,6 @@ def get_backups(backups_dir):
             backups.append(Backup(os.path.join(root, fname)))
 
     return backups
+
+def get_max_score(data):
+    return max([max(list(data[card]['scores'].values())) for card in data])
