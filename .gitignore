@@ -6,3 +6,5 @@
 backups/
 
 plecoviewer/__pycache__/
+
+.vscode/
