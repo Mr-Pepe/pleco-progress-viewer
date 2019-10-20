@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime
 import os
 
+
 class Backup():
     def __init__(self, database_path):
         self.path = database_path
@@ -18,7 +19,6 @@ class Backup():
             _, fname = os.path.split(database_path)
             timestamp = fname.split('-')[-1].split('.')[0]
             self.timestamp = datetime.strptime(timestamp, '%y%m%d%H%M')
-
 
     @staticmethod
     def create_connection(db_file):
@@ -55,14 +55,18 @@ class Container(dict):
         super(Container, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
+
 class Entry(Container):
     def __init__(self, *args, **kwargs):
         super(Entry, self).__init__(*args, **kwargs)
 
 
 class BackupSummary():
-    def __init__(self, backups):
+    
+    def __init__(self, backups_dir):
         self.score_files = dict()
+
+        backups = get_backups(backups_dir)
 
         for backup in backups:
             timestamp = backup.timestamp
@@ -75,10 +79,20 @@ class BackupSummary():
                     if card not in self.score_files[score_file]:
                         self.score_files[score_file][card] = dict({'scores': dict(), 'reviewed': 0})
 
+                        if card in backup.cards:
+                            self.score_files[score_file][card]['simplified'] = backup.cards[card].hw
+                            self.score_files[score_file][card]['traditional'] = backup.cards[card].althw
+                            self.score_files[score_file][card]['pinyin'] = backup.cards[card].pron
+
                     self.score_files[score_file][card]['scores'][timestamp] = backup.score_files[score_file][card].score
 
                     if backup.score_files[score_file][card].reviewed > self.score_files[score_file][card]['reviewed']:
                         self.score_files[score_file][card]['reviewed'] = backup.score_files[score_file][card].reviewed
+
+                        if card in backup.category_assigns:
+                            self.score_files[score_file][card]['category'] = backup.categories[backup.category_assigns[card]['cat']]
+                        else:
+                            self.score_files[score_file][card]['category'] = None
 
 
 def get_backups(backups_dir):
