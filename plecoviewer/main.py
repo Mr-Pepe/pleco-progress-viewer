@@ -83,5 +83,5 @@ score_slider.on_change("value", score_slider_callback)
 source = ColumnDataSource(data=dict(x=[[]], y=[[]]))
 update_plot()
 p.multi_line('x', 'y', source=source)
-curdoc().add_root(layout([[score_file_chooser, score_slider, p]]))
+curdoc().add_root(layout([[layout([score_file_chooser, score_slider]), p]]))
 
