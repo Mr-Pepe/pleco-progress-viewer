@@ -1,8 +1,9 @@
-# myapp.py
-from plecoviewer.utils import get_max_score, Backup, BackupSummary, get_backups, Container
-# from plecoviewer.callbacks import score_file_chooser_callback
+from plecoviewer.utils import generate_data, get_max_score, Backup, BackupSummary, get_backups, Container
 from random import random
 from functools import partial
+from itertools import compress
+import time
+import numpy as np
 
 import bokeh
 from bokeh.layouts import column, layout
@@ -15,7 +16,7 @@ from bokeh.models.sources import ColumnDataSource
 def score_file_chooser_callback(attr, old, new):
     global data, score_file_name, max_score, p, score_slider
     score_file_name = new
-    data = summary.score_files[new]
+    data = generate_data(summary.score_files[new])
     max_score = get_max_score(data)
     score_slider.end = max_score
     score_slider.value = (0, max_score)
@@ -29,21 +30,12 @@ def update_plot():
     x = []
     y = []
 
-    for card in data:
-        # Only show cards that have a high enough score
-        
-        if sorted(data[card]['scores'].items())[-1][1] >= score_slider.value[0] and \
-           sorted(data[card]['scores'].items())[-1][1] <= score_slider.value[1]:
-            x.append([])
-            y.append([])
+    # Get cards with appropriate scores
+    indices = [True if scores[-1] >= score_slider.value[0] and scores[-1] <= score_slider.value[1] else False for scores in data['scores']]
 
-            for (timestamp, score) in sorted(data[card]['scores'].items()):
-                x[-1].append(timestamp)
-                y[-1].append(score)
+    y = data['scores'][np.logical_and(data['scores'][:,-1] >= score_slider.value[0], data['scores'][:,-1] <= score_slider.value[1])].tolist()
+    x = data['timestamps'][:len(y)]
 
-    # x = [[ts for ts in sorted(data[card]['scores'])] for (card, scores) in data.items()]
-    # y = [[score for (timestamp, score) in sorted(data[card]['scores'].items())] for (card, scores) in data.items()]
-    
     source.data = dict(x=x, y=y)
 
 
@@ -58,7 +50,7 @@ if len(summary.score_files) == 0:
 # data selects the data to be plotted from the summary
 # Per default the first score file is selected
 score_file_name = list(summary.score_files.keys())[0]
-data = summary.score_files[score_file_name]
+data = generate_data(summary.score_files[score_file_name])
 max_score = get_max_score(data)
 
 # create a plot and style its properties
@@ -77,8 +69,14 @@ score_file_chooser = Select(title='Score file', value='', options=score_file_nam
 score_file_chooser.on_change("value", score_file_chooser_callback)
 
 # Add a slider to select when a card is considered as learned
-score_slider = RangeSlider(title="Show cards with score in range ", start=0, end=max_score, value=(0, max_score), step=1)
-score_slider.on_change("value", score_slider_callback)
+score_slider = RangeSlider(title="Show cards with score in range ", 
+                           start=0, 
+                           end=max_score, 
+                           value=(0, max_score), 
+                           step=1,
+                           callback_policy='throttle',
+                           callback_throttle=500)
+score_slider.on_change("value_throttled", score_slider_callback)
 
 source = ColumnDataSource(data=dict(x=[[]], y=[[]]))
 update_plot()

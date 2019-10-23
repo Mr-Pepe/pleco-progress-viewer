@@ -3,6 +3,7 @@ from sqlite3 import Error
 import numpy as np
 from datetime import datetime
 import os
+import numpy as np
 
 
 class Backup():
@@ -107,4 +108,32 @@ def get_backups(backups_dir):
     return backups
 
 def get_max_score(data):
-    return max([max(list(data[card]['scores'].values())) for card in data])
+    return max([max(scores) for scores in data['scores']])
+
+def generate_data(score_file):
+    
+    data = dict()
+
+    # Get all timestamps
+    data['timestamps'] = []
+
+    for card in score_file:
+        for timestamp in score_file[card]['scores']:
+            if timestamp not in data['timestamps']:
+                data['timestamps'].append(timestamp)
+
+    data['timestamps'] = sorted(data['timestamps'])
+
+    # Create list of list with scores
+    data['scores'] = np.zeros((len(score_file), len(data['timestamps'])))
+    i_card = 0
+
+    for card in score_file:
+        for timestamp, score in score_file[card]['scores'].items():
+            data['scores'][i_card, data['timestamps'].index(timestamp)] = score
+        
+        i_card += 1
+
+    data['timestamps'] = [data['timestamps'] for card in score_file]
+    
+    return data
