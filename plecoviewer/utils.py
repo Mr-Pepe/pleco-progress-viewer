@@ -79,7 +79,7 @@ class BackupSummary():
                 for card in backup.score_files[score_file]:
                     if card not in self.score_files[score_file]:
                         self.score_files[score_file][card] = dict({'scores': dict(), 
-                                                                   'reviewed': 0,
+                                                                   'reviewed': dict(),
                                                                    'category': dict()})
 
                         if card in backup.cards:
@@ -89,8 +89,7 @@ class BackupSummary():
 
                     self.score_files[score_file][card]['scores'][timestamp] = backup.score_files[score_file][card].score
 
-                    if backup.score_files[score_file][card].reviewed > self.score_files[score_file][card]['reviewed']:
-                        self.score_files[score_file][card]['reviewed'] = backup.score_files[score_file][card].reviewed
+                    self.score_files[score_file][card]['reviewed'][timestamp] = backup.score_files[score_file][card].reviewed
 
                     if card in backup.category_assigns:
                         self.score_files[score_file][card]['category'][timestamp] = backup.categories[backup.category_assigns[card]['cat']]
@@ -112,7 +111,7 @@ def get_backups(backups_dir):
 
 class Data():
     
-    def __init__(self, score_file):
+    def __init__(self, score_file, reviewed_only=0):
         self.timestamps = []
         self.scores = dict()
 
@@ -122,7 +121,10 @@ class Data():
                     self.timestamps.append(timestamp)
                     self.scores[timestamp] = []
 
-                self.scores[timestamp].append(score_file[card]['scores'][timestamp])
+                # print(score_file[card]['reviewed'][timestamp])
+
+                if reviewed_only == 0 or (reviewed_only and score_file[card]['reviewed'][timestamp] > 1):
+                    self.scores[timestamp].append(score_file[card]['scores'][timestamp])
 
         for timestamp in self.timestamps:
             self.scores[timestamp] = np.array(self.scores[timestamp])

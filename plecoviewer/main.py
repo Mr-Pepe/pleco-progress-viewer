@@ -10,22 +10,25 @@ import bokeh
 from bokeh.layouts import column, layout
 from bokeh.models import Button, Select, DatetimeTickFormatter
 from bokeh.plotting import figure, curdoc, show
-from bokeh.models.widgets import Slider
+from bokeh.models.widgets import Slider, CheckboxGroup
 from bokeh.models.sources import ColumnDataSource
 from bokeh.models import HoverTool
 
 def score_file_chooser_callback(attr, old, new):
-    global data, score_file_name, score_slider
+    global data, score_slider, score_file_name
     score_file_name = new
-    data = Data(summary.score_files[new])
+    data = Data(summary.score_files[new], reviewed_only=len(reviewed_checkbox.active))
     score_slider.end = data.max_score()
     score_slider.value = min(100, data.max_score())
     update_plot()
 
-
 def score_slider_callback(attr, old, new):
     update_plot()
 
+def reviewed_checkbox_callback(attr, old, new):
+    global data, score_file_name
+    data = Data(summary.score_files[score_file_name], reviewed_only=len(new))
+    update_plot()
 
 def update_plot():
     global p, data, source
@@ -82,20 +85,26 @@ score_slider = Slider(title="Cards with score above ",
 
 score_slider.on_change("value_throttled", score_slider_callback)
 
-source = ColumnDataSource(data=dict(x=[], y=[]))
+# Button to select whether to only consider cards that have been reviewed at least once
+reviewed_checkbox = CheckboxGroup(labels=["Only cards that have been reviewed"], 
+                                  active=[])
+
+reviewed_checkbox.on_change("active", reviewed_checkbox_callback)
 
 # create a plot and style its properties
 p = figure(title="Number of cards learned", 
            x_axis_type='datetime',
            tools=[hovertool])
-p.line('x', 'y', source=source, line_width=4)
 p.title.text_font_size = '18pt'
 
 p.xaxis.major_label_text_font_size = '14pt'
 p.xaxis.major_label_orientation = pi/4
 p.yaxis.major_label_text_font_size = '14pt'
 
+# Plot
+source = ColumnDataSource(data=dict(x=[], y=[]))
+p.line('x', 'y', source=source, line_width=4)
 
 update_plot()
-curdoc().add_root(layout([[layout([score_file_chooser, score_slider]), p]]))
+curdoc().add_root(layout([[layout([score_file_chooser, score_slider, reviewed_checkbox]), p]]))
 
