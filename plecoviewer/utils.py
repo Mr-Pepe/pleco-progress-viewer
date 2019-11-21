@@ -78,7 +78,9 @@ class BackupSummary():
 
                 for card in backup.score_files[score_file]:
                     if card not in self.score_files[score_file]:
-                        self.score_files[score_file][card] = dict({'scores': dict(), 'reviewed': 0})
+                        self.score_files[score_file][card] = dict({'scores': dict(), 
+                                                                   'reviewed': 0,
+                                                                   'category': dict()})
 
                         if card in backup.cards:
                             self.score_files[score_file][card]['simplified'] = backup.cards[card].hw
@@ -90,10 +92,10 @@ class BackupSummary():
                     if backup.score_files[score_file][card].reviewed > self.score_files[score_file][card]['reviewed']:
                         self.score_files[score_file][card]['reviewed'] = backup.score_files[score_file][card].reviewed
 
-                        if card in backup.category_assigns:
-                            self.score_files[score_file][card]['category'] = backup.categories[backup.category_assigns[card]['cat']]
-                        else:
-                            self.score_files[score_file][card]['category'] = None
+                    if card in backup.category_assigns:
+                        self.score_files[score_file][card]['category'][timestamp] = backup.categories[backup.category_assigns[card]['cat']]
+                    else:
+                        self.score_files[score_file][card]['category'][timestamp] = None
 
 
 def get_backups(backups_dir):
@@ -107,33 +109,25 @@ def get_backups(backups_dir):
 
     return backups
 
-def get_max_score(data):
-    return max([max(scores) for scores in data['scores']])
 
-def generate_data(score_file):
+class Data():
     
-    data = dict()
+    def __init__(self, score_file):
+        self.timestamps = []
+        self.scores = dict()
 
-    # Get all timestamps
-    data['timestamps'] = []
+        for card in score_file:
+            for timestamp in score_file[card]['scores']:
+                if timestamp not in self.timestamps:
+                    self.timestamps.append(timestamp)
+                    self.scores[timestamp] = []
 
-    for card in score_file:
-        for timestamp in score_file[card]['scores']:
-            if timestamp not in data['timestamps']:
-                data['timestamps'].append(timestamp)
+                self.scores[timestamp].append(score_file[card]['scores'][timestamp])
 
-    data['timestamps'] = sorted(data['timestamps'])
+        for timestamp in self.timestamps:
+            self.scores[timestamp] = np.array(self.scores[timestamp])
 
-    # Create list of list with scores
-    data['scores'] = np.zeros((len(score_file), len(data['timestamps'])))
-    i_card = 0
+        self.timestamps = sorted(self.timestamps)
 
-    for card in score_file:
-        for timestamp, score in score_file[card]['scores'].items():
-            data['scores'][i_card, data['timestamps'].index(timestamp)] = score
-        
-        i_card += 1
-
-    data['timestamps'] = [data['timestamps'] for card in score_file]
-    
-    return data
+    def max_score(self):
+        return max([max(scores) for timestamp, scores in self.scores.items()])

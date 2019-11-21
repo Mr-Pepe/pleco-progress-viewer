@@ -1,4 +1,4 @@
-from plecoviewer.utils import generate_data, get_max_score, Backup, BackupSummary, get_backups, Container
+from plecoviewer.utils import Data, Backup, BackupSummary
 from random import random
 from functools import partial
 from itertools import compress
@@ -8,35 +8,36 @@ import numpy as np
 import bokeh
 from bokeh.layouts import column, layout
 from bokeh.models import Button, Select, DatetimeTickFormatter
-from bokeh.palettes import RdYlBu3
-from bokeh.plotting import figure, curdoc
-from bokeh.models.widgets import RangeSlider
+from bokeh.plotting import figure, curdoc, show
+from bokeh.models.widgets import Slider
 from bokeh.models.sources import ColumnDataSource
 
+
 def score_file_chooser_callback(attr, old, new):
-    global data, score_file_name, max_score, p, score_slider
+    global data, score_file_name, score_slider
     score_file_name = new
-    data = generate_data(summary.score_files[new])
-    max_score = get_max_score(data)
-    score_slider.end = max_score
-    score_slider.value = (0, max_score)
+    data = Data(summary.score_files[new])
+    score_slider.end = data.max_score()
+    score_slider.value = min(100, data.max_score())
     update_plot()
+
 
 def score_slider_callback(attr, old, new):
     update_plot()
 
+
 def update_plot():
-    global p, source
-    x = []
-    y = []
+    global p, data, source
 
-    # Get cards with appropriate scores
-    indices = [True if scores[-1] >= score_slider.value[0] and scores[-1] <= score_slider.value[1] else False for scores in data['scores']]
+    # Get number of cards above threshold for each timestamp
+    y = np.zeros(len(data.timestamps))
 
-    y = data['scores'][np.logical_and(data['scores'][:,-1] >= score_slider.value[0], data['scores'][:,-1] <= score_slider.value[1])].tolist()
-    x = data['timestamps'][:len(y)]
-
-    source.data = dict(x=x, y=y)
+    for i_timestamp, timestamp in enumerate(data.timestamps):
+        y[i_timestamp] = np.count_nonzero(data.scores[timestamp] > score_slider.value)
+    
+    source.data = dict(x=data.timestamps,
+                       y1=y,
+                       y2=np.zeros_like(y))
 
 
 backups_dir = "/home/felipe/Projects/PlecoViewer/backups"
@@ -47,21 +48,15 @@ summary = BackupSummary(backups_dir)
 if len(summary.score_files) == 0:
     raise Exception("Specified directory does not contain any Pleco backups.")
 
-# data selects the data to be plotted from the summary
+# data holds the preprocessed data for plotting
 # Per default the first score file is selected
 score_file_name = list(summary.score_files.keys())[0]
-data = generate_data(summary.score_files[score_file_name])
-max_score = get_max_score(data)
+data = Data(summary.score_files[score_file_name])
 
 # create a plot and style its properties
-p = figure(x_axis_type='datetime', toolbar_location=None, title='Test')
-# x = [[ts for ts in sorted(data[card]['scores'])] for (card, scores) in data.items()]
-# y = [[score for (timestamp, score) in sorted(data[card]['scores'].items())] for (card, scores) in data.items()]
-# p.multi_line(x, y)
-p.border_fill_color = 'white'
-p.background_fill_color = 'grey'
-p.outline_line_color = None
-p.grid.grid_line_color = None
+p = figure(title="Number of cards learned", 
+           x_axis_type='datetime',
+           toolbar_location=None)
 
 # Add a menu to select the score file
 score_file_names = [fname for fname in summary.score_files.keys()]
@@ -69,17 +64,18 @@ score_file_chooser = Select(title='Score file', value='', options=score_file_nam
 score_file_chooser.on_change("value", score_file_chooser_callback)
 
 # Add a slider to select when a card is considered as learned
-score_slider = RangeSlider(title="Show cards with score in range ", 
+score_slider = Slider(title="Cards with score above ", 
                            start=0, 
-                           end=max_score, 
-                           value=(0, max_score), 
-                           step=1,
+                           end=data.max_score(), 
+                           value=min(100, data.max_score()), 
+                           step=100,
                            callback_policy='throttle',
                            callback_throttle=500)
+
 score_slider.on_change("value_throttled", score_slider_callback)
 
-source = ColumnDataSource(data=dict(x=[[]], y=[[]]))
+source = ColumnDataSource(data=dict(x=[], y1=[], y2=[]))
+p.varea('x', 'y1', 'y2', source=source)
 update_plot()
-p.multi_line('x', 'y', source=source)
 curdoc().add_root(layout([[layout([score_file_chooser, score_slider]), p]]))
 
