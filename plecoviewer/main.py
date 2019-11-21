@@ -4,6 +4,7 @@ from functools import partial
 from itertools import compress
 import time
 import numpy as np
+from math import pi
 
 import bokeh
 from bokeh.layouts import column, layout
@@ -11,7 +12,7 @@ from bokeh.models import Button, Select, DatetimeTickFormatter
 from bokeh.plotting import figure, curdoc, show
 from bokeh.models.widgets import Slider
 from bokeh.models.sources import ColumnDataSource
-
+from bokeh.models import HoverTool
 
 def score_file_chooser_callback(attr, old, new):
     global data, score_file_name, score_slider
@@ -36,8 +37,7 @@ def update_plot():
         y[i_timestamp] = np.count_nonzero(data.scores[timestamp] > score_slider.value)
     
     source.data = dict(x=data.timestamps,
-                       y1=y,
-                       y2=np.zeros_like(y))
+                       y=y)
 
 
 backups_dir = "/home/felipe/Projects/PlecoViewer/backups"
@@ -53,10 +53,18 @@ if len(summary.score_files) == 0:
 score_file_name = list(summary.score_files.keys())[0]
 data = Data(summary.score_files[score_file_name])
 
-# create a plot and style its properties
-p = figure(title="Number of cards learned", 
-           x_axis_type='datetime',
-           toolbar_location=None)
+hovertool = HoverTool(
+    tooltips=[
+        ('Date', '@x{%F}'),
+        ('Learned', '@y')
+    ],
+
+    formatters={
+        'x': 'datetime'
+    },
+
+    mode='vline'
+)
 
 # Add a menu to select the score file
 score_file_names = [fname for fname in summary.score_files.keys()]
@@ -74,8 +82,20 @@ score_slider = Slider(title="Cards with score above ",
 
 score_slider.on_change("value_throttled", score_slider_callback)
 
-source = ColumnDataSource(data=dict(x=[], y1=[], y2=[]))
-p.varea('x', 'y1', 'y2', source=source)
+source = ColumnDataSource(data=dict(x=[], y=[]))
+
+# create a plot and style its properties
+p = figure(title="Number of cards learned", 
+           x_axis_type='datetime',
+           tools=[hovertool])
+p.line('x', 'y', source=source, line_width=4)
+p.title.text_font_size = '18pt'
+
+p.xaxis.major_label_text_font_size = '14pt'
+p.xaxis.major_label_orientation = pi/4
+p.yaxis.major_label_text_font_size = '14pt'
+
+
 update_plot()
 curdoc().add_root(layout([[layout([score_file_chooser, score_slider]), p]]))
 
