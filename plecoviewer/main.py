@@ -43,9 +43,9 @@ def update_plot():
         n_cards[i_timestamp] = np.count_nonzero(np.array(list(data.card_scores[timestamp].values())) > score_slider.value)
         n_chars[i_timestamp] = np.count_nonzero(np.array(list(data.char_scores[timestamp].values())) > score_slider.value)
     
-    source.data = dict(x=[data.timestamps for i in range(2)],
-                       y=[n_cards, n_chars],
-                       color=COLORS)
+    source.data = dict(timestamps=data.timestamps,
+                       n_cards=n_cards, 
+                       n_characters=n_chars)
 
 
 backups_dir = "/home/felipe/Projects/PlecoViewer/backups"
@@ -83,24 +83,24 @@ reviewed_checkbox = CheckboxGroup(labels=["Only cards that have been reviewed"],
 
 reviewed_checkbox.on_change("active", reviewed_checkbox_callback)
 
-# create a plot and style its properties
+# Create a plot and style its properties
 hovertool = HoverTool(
     tooltips=[
-        # ('Date', '@(x[0]){%F}'),
-        ('Date', '@{x[0]}{%F}')
-        # ('Learned', '@y')
+        ('Date', '@timestamps{%F}'),
+        ('Cards', '@n_cards'),
+        ('Characters', '@n_characters')
     ],
 
     formatters={
-        'x[0]': 'datetime'
+        'timestamps': 'datetime'
     },
 
-    line_policy='next'
+    mode='mouse'
 )
 p = figure(title="", 
            x_axis_type='datetime',
-           tools=[hovertool],
-           toolbar_location='above')
+           toolbar_location='above',
+           tools=[hovertool])
 p.title.text_font_size = '18pt'
 
 p.xaxis.major_label_text_font_size = '14pt'
@@ -108,21 +108,23 @@ p.xaxis.major_label_orientation = pi/4
 p.yaxis.major_label_text_font_size = '14pt'
 
 # Plot
-source = ColumnDataSource(data=dict(x=[[],[]], y=[[],[]], color=COLORS))
+source = ColumnDataSource(data=dict(timestamps=[], 
+                                    n_cards=[], 
+                                    n_characters=[]))
 
-r = p.multi_line(xs='x', ys='y', source=source, 
-                 line_width=4,
-                 line_color='color')
+r = p.line('timestamps', 'n_cards', source=source, 
+        line_width=4,         
+        legend_label='Number of cards learned',
+        color='blue')
+
+p.line('timestamps', 'n_characters', source=source,
+        line_width=4,
+        legend_label='Number of characters learned',
+        color='red')
+    
 p.y_range.start = 0
 
-p.add_layout(
-    Legend(
-        items=[
-            LegendItem(label='Cards learned', renderers=[r], index=0),
-            LegendItem(label='Characters learned', renderers=[r], index=1)],
-        location='bottom_right'
-    ),
-)
+p.legend.location = 'bottom_right'
 
 curdoc().add_root(layout([[layout([score_file_chooser, score_slider, reviewed_checkbox]), p]]))
 update_plot()
