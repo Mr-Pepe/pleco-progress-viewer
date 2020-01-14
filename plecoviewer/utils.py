@@ -115,6 +115,7 @@ class Data():
         self.timestamps = []
         self.card_scores = dict()
         self.char_scores = dict()
+        self.reviewed = dict()
 
         for card in score_file:
             for timestamp in score_file[card]['scores']:
@@ -122,8 +123,10 @@ class Data():
                     self.timestamps.append(timestamp)
                     self.card_scores[timestamp] = dict()
                     self.char_scores[timestamp] = dict()
+                    self.reviewed[timestamp] = 0
 
                 self.card_scores[timestamp][card] = score_file[card]['scores'][timestamp]
+                self.reviewed[timestamp] += score_file[card]['reviewed'][timestamp]
                 
                 # Some cards don't have the headwords included and will therefore not be counted
                 if 'simplified' in score_file[card]:

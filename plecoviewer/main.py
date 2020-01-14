@@ -17,7 +17,7 @@ from bokeh.models import HoverTool, Legend, LegendItem, Range1d
 COLORS = ['red', 'blue']
 
 def score_file_chooser_callback(attr, old, new):
-    global data, score_slider, score_file_name, source
+    global data, score_slider, score_file_name
     score_file_name = new
     data = Data(summary.score_files[new])
     score_slider.end = data.max_score()
@@ -28,7 +28,7 @@ def score_slider_callback(attr, old, new):
     update_plot()
 
 def update_plot():
-    global p, data, source
+    global data, source_learned, source_reviewed
 
     # Get number of cards and characters above threshold for each timestamp
     n_cards = np.zeros(len(data.timestamps))
@@ -38,9 +38,12 @@ def update_plot():
         n_cards[i_timestamp] = np.count_nonzero(np.array(list(data.card_scores[timestamp].values())) > score_slider.value)
         n_chars[i_timestamp] = np.count_nonzero(np.array(list(data.char_scores[timestamp].values())) > score_slider.value)
     
-    source.data = dict(timestamps=data.timestamps,
-                       n_cards=n_cards, 
-                       n_characters=n_chars)
+    source_learned.data = dict(timestamps=data.timestamps,
+                                n_cards=n_cards, 
+                                n_characters=n_chars)
+
+    source_reviewed.data = dict(timestamps=data.timestamps,
+                                    n_reviews=np.array([data.reviewed[timestamp] for timestamp in data.timestamps]))
 
 
 backups_dir = "/home/felipe/Projects/PlecoViewer/backups"
@@ -66,14 +69,14 @@ score_slider = Slider(title="Cards with score above ",
                            start=0, 
                            end=data.max_score(), 
                            value=min(100, data.max_score()), 
-                           step=100,
+                           step=50,
                            callback_policy='throttle',
                            callback_throttle=500)
 
 score_slider.on_change("value_throttled", score_slider_callback)
 
-# Create a plot and style its properties
-hovertool = HoverTool(
+# Create a plot for the number of learned cards and characters and style its properties
+hovertool_learned = HoverTool(
     tooltips=[
         ('Date', '@timestamps{%F}'),
         ('Cards', '@n_cards'),
@@ -86,34 +89,71 @@ hovertool = HoverTool(
 
     mode='mouse'
 )
-p = figure(title="", 
+p_learned = figure(title="Number of learned words and characters", 
            x_axis_type='datetime',
            toolbar_location='above',
-           tools=[hovertool])
-p.title.text_font_size = '18pt'
+           tools=[hovertool_learned])
+p_learned.title.text_font_size = '18pt'
 
-p.xaxis.major_label_text_font_size = '14pt'
-p.xaxis.major_label_orientation = pi/4
-p.yaxis.major_label_text_font_size = '14pt'
+p_learned.xaxis.major_label_text_font_size = '14pt'
+p_learned.xaxis.major_label_orientation = pi/4
+p_learned.yaxis.major_label_text_font_size = '14pt'
 
-# Plot
-source = ColumnDataSource(data=dict(timestamps=[], 
+# Plot learned words and characters
+source_learned = ColumnDataSource(data=dict(timestamps=[], 
                                     n_cards=[], 
                                     n_characters=[]))
 
-r = p.line('timestamps', 'n_cards', source=source, 
+p_learned.line('timestamps', 'n_cards', source=source_learned, 
         line_width=4,         
         legend_label='Number of cards learned',
         color='blue')
 
-p.line('timestamps', 'n_characters', source=source,
+p_learned.line('timestamps', 'n_characters', source=source_learned,
         line_width=4,
         legend_label='Number of characters learned',
         color='red')
     
-p.y_range.start = 0
+p_learned.y_range.start = 0
 
-p.legend.location = 'bottom_right'
+p_learned.legend.location = 'bottom_right'
 
-curdoc().add_root(layout([[layout([score_file_chooser, score_slider]), p]]))
+# Create plot for number of reviews
+hovertool_learned = HoverTool(
+    tooltips=[
+        ('Date', '@timestamps{%F}'),
+        ('Reviews', '@n_reviews'),
+    ],
+
+    formatters={
+        'timestamps': 'datetime'
+    },
+
+    mode='mouse'
+)
+p_reviewed = figure(title="Number of total reviews", 
+           x_axis_type='datetime',
+           toolbar_location='above',
+           tools=[hovertool_learned])
+p_reviewed.title.text_font_size = '18pt'
+
+p_reviewed.xaxis.major_label_text_font_size = '14pt'
+p_reviewed.xaxis.major_label_orientation = pi/4
+p_reviewed.yaxis.major_label_text_font_size = '14pt'
+
+# Plot number of reviews
+source_reviewed = ColumnDataSource(data=dict(timestamps=[], 
+                                            n_reviews=[]))
+
+p_reviewed.line('timestamps', 'n_reviews', source=source_reviewed, 
+                line_width=4,         
+                legend_label='Number of total reviews',
+                color='blue')       
+
+p_reviewed.y_range.start = 0
+
+p_reviewed.legend.location = 'bottom_right'
+                                 
+
+curdoc().add_root(layout([[layout([score_file_chooser, score_slider]), [[p_learned, p_reviewed]]]]))
 update_plot()
