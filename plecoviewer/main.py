@@ -19,17 +19,12 @@ COLORS = ['red', 'blue']
 def score_file_chooser_callback(attr, old, new):
     global data, score_slider, score_file_name, source
     score_file_name = new
-    data = Data(summary.score_files[new], reviewed_only=len(reviewed_checkbox.active))
+    data = Data(summary.score_files[new])
     score_slider.end = data.max_score()
     score_slider.value = min(100, data.max_score())
     update_plot()
 
 def score_slider_callback(attr, old, new):
-    update_plot()
-
-def reviewed_checkbox_callback(attr, old, new):
-    global data, score_file_name, source
-    data = Data(summary.score_files[score_file_name], reviewed_only=len(new))
     update_plot()
 
 def update_plot():
@@ -77,12 +72,6 @@ score_slider = Slider(title="Cards with score above ",
 
 score_slider.on_change("value_throttled", score_slider_callback)
 
-# Button to select whether to only consider cards that have been reviewed at least once
-reviewed_checkbox = CheckboxGroup(labels=["Only cards that have been reviewed"], 
-                                  active=[])
-
-reviewed_checkbox.on_change("active", reviewed_checkbox_callback)
-
 # Create a plot and style its properties
 hovertool = HoverTool(
     tooltips=[
@@ -126,5 +115,5 @@ p.y_range.start = 0
 
 p.legend.location = 'bottom_right'
 
-curdoc().add_root(layout([[layout([score_file_chooser, score_slider, reviewed_checkbox]), p]]))
+curdoc().add_root(layout([[layout([score_file_chooser, score_slider]), p]]))
 update_plot()

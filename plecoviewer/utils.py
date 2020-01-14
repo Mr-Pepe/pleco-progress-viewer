@@ -123,19 +123,19 @@ class Data():
                     self.card_scores[timestamp] = dict()
                     self.char_scores[timestamp] = dict()
 
-                if reviewed_only == 0 or (reviewed_only and score_file[card]['reviewed'][timestamp] > 1):
-                    self.card_scores[timestamp][card] = score_file[card]['scores'][timestamp]
-                    
-                    # Some cards don't have the headwords included and will therefore not be counted
-                    if 'simplified' in score_file[card]:
-                        for character in score_file[card]['simplified']:
-                            if character not in self.char_scores:
-                                self.char_scores[timestamp][character] = -1
-                            
-                            if score_file[card]['scores'][timestamp] > self.char_scores[timestamp][character]:
-                                self.char_scores[timestamp][character] = score_file[card]['scores'][timestamp]
+                self.card_scores[timestamp][card] = score_file[card]['scores'][timestamp]
+                
+                # Some cards don't have the headwords included and will therefore not be counted
+                if 'simplified' in score_file[card]:
+                    for character in score_file[card]['simplified']:
+                        if character not in self.char_scores:
+                            self.char_scores[timestamp][character] = -1
+                        
+                        if score_file[card]['scores'][timestamp] > self.char_scores[timestamp][character]:
+                            self.char_scores[timestamp][character] = score_file[card]['scores'][timestamp]
+                
 
         self.timestamps = sorted(self.timestamps)
 
     def max_score(self):
-        return max([max(scores) for timestamp, scores in self.card_scores.items()])
+        return max([max(scores.values()) for timestamp, scores in self.card_scores.items()])
