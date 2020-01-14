@@ -46,7 +46,7 @@ def update_plot():
                                     n_reviews=np.array([data.reviewed[timestamp] for timestamp in data.timestamps]))
 
 
-backups_dir = "/home/felipe/Projects/PlecoViewer/backups"
+backups_dir = "./backups"
 
 # The summary holds all relevant data
 summary = BackupSummary(backups_dir)
