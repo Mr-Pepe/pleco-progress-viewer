@@ -1,0 +1,64 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.com/libraries/sql.js"></script>
+
+
+<main>
+    <label for='commands'>Enter some SQL</label>
+    <br>
+
+    <textarea id="commands"></textarea>
+
+    <button id="execute" class="button">Execute</button>
+    <button id='savedb' class="button">Save the db</button>
+    <label class="button">Load an SQLite database file: <input type='file' id='dbfile'></label>
+
+    <div id="error" class="error"></div>
+
+    <pre id="output">Results will be displayed here</pre>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.58.1/mode/sql/sql.min.js"></script>
+
+  <script type="text/javascript" src="gui.js"></script>
+
+  <div>
+    <canvas id="myChart"></canvas>
+</div>
+
+
+<script>
+    const labels = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+    ];
+
+    const data = {
+      labels: labels,
+      datasets: [{
+        label: 'My First dataset',
+        backgroundColor: 'rgb(255, 99, 132)',
+        borderColor: 'rgb(255, 99, 132)',
+        data: [0, 10, 5, 2, 20, 30, 45],
+      }]
+    };
+
+    const chart_config = {
+      type: 'line',
+      data: data,
+      options: {}
+    };
+</script>
+
+
+<script>
+    const myChart = new Chart(
+      document.getElementById('myChart'),
+      chart_config
+    );
+</script>
+
+</body>
