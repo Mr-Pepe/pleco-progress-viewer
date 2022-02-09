@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "chart.js": "^3.7.0",
+    "chartjs-adapter-date-fns": "^2.0.0",
+    "date-fns": "^2.28.0",
+    "sql.js": "^1.6.2"
+  }
+}

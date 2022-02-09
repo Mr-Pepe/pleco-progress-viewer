@@ -10,3 +10,5 @@ plecoviewer/__pycache__/
 .vscode/
 
 !*.gitkeep
+
+node_modules/

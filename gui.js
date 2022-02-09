@@ -4,9 +4,10 @@ var errorElm = document.getElementById('error');
 var commandsElm = document.getElementById('commands');
 var dbFileElm = document.getElementById('dbfile');
 var savedbElm = document.getElementById('savedb');
+const chartCtx = document.getElementById('progressChart');
 
 // Start the worker in which sql.js will run
-var worker = new Worker("../dist/worker.sql-wasm.js");
+var worker = new Worker("node_modules/sql.js/dist/worker.sql-wasm.js");
 worker.onerror = error;
 
 // Open a database
@@ -38,11 +39,39 @@ function execute(commands) {
 		}
 
 		tic();
-		outputElm.innerHTML = "";
-		for (var i = 0; i < results.length; i++) {
-			outputElm.appendChild(tableCreate(results[i].columns, results[i].values));
+		// outputElm.innerHTML = "";
+		var utc_timestamps = results[0].values.flat().map(x => x * 1000)
+		var dates = []
+		for (var i = 0; i < utc_timestamps.length; i++) {
+			dates.push(new Date(utc_timestamps[i] * 1000))
 		}
 		toc("Displaying results");
+		new Chart(chartCtx, {
+			type: 'line',
+			data: {
+				labels: utc_timestamps,
+				datasets: [{
+				  label: 'Cards',
+				  data: [...Array(dates.length).keys()],
+				  fill: false,
+				  borderColor: 'rgb(75, 192, 192)',
+				  tension: 0.1
+				}]
+			  },
+			options: {
+				scales: {
+					x: {
+						type: 'time',
+						time: {
+							unit: 'day'
+						}
+					},
+					y: {
+						beginAtZero: true
+					}
+				}
+			}
+		});
 	}
 	worker.postMessage({ action: 'exec', sql: commands });
 	outputElm.textContent = "Fetching results...";
@@ -103,8 +132,7 @@ dbFileElm.onchange = function () {
 	r.onload = function () {
 		worker.onmessage = function () {
 			toc("Loading database from file");
-			// Show the schema of the loaded database
-			editor.setValue("SELECT `name`, `sql`\n  FROM `sqlite_master`\n  WHERE type='table';");
+			editor.setValue("SELECT firstreviewedtime FROM pleco_flash_scores_3 ORDER BY firstreviewedtime ASC");
 			execEditorContents();
 		};
 		tic();
