@@ -1,14 +1,6 @@
 
-\.idea/
-
 *.pqb
 
 backups/**
 
-plecoviewer/__pycache__/
-
 .vscode/
-
-!*.gitkeep
-
-node_modules/
