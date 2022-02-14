@@ -1,32 +1,29 @@
-var errorElm = document.getElementById('error');
-var dbFileElm = document.getElementById('dbfile');
-const chartCtx = document.getElementById('progressChart');
+var errorOutput = document.getElementById('error');
+var loadDbButton = document.getElementById('dbfile');
 
-// Start the worker in which sql.js will run
+const chartContext = document.getElementById('progressChart');
+const chart = new Chart(chartContext, { type: 'line' });
+
 var worker = new Worker("node_modules/sql.js/dist/worker.sql-wasm.js");
 worker.onerror = error;
 
-// Open a database
 worker.postMessage({ action: 'open' });
 
 function error(e) {
 	console.log(e);
-	errorElm.style.height = '2em';
-	errorElm.textContent = e.message;
+	errorOutput.style.height = '2em';
+	errorOutput.textContent = e.message;
 }
 
 function noerror() {
-	errorElm.style.height = '0';
+	errorOutput.style.height = '0';
 }
 
-const chart = new Chart(chartCtx, {type:'line'});
-
-// Run a command in the database
-function execute(commands) {
+function showProgress(sqlCommand, scoreFile) {
 	worker.onmessage = function (event) {
 		var results = event.data.results;
 		if (!results) {
-			error({message: event.data.error});
+			error({ message: event.data.error });
 			return;
 		}
 		noerror()
@@ -36,14 +33,20 @@ function execute(commands) {
 		chart.data = {
 			labels: utc_timestamps,
 			datasets: [{
-			  label: 'Cards',
-			  data: [...Array(utc_timestamps.length).keys()],
-			  fill: false,
-			  borderColor: 'rgb(75, 192, 192)',
-			  tension: 0.1
+				label: 'Cards',
+				data: [...Array(utc_timestamps.length).keys()],
+				fill: false,
+				borderColor: 'rgb(75, 192, 192)',
+				tension: 0.1
 			}]
 		}
 		chart.options = {
+			plugins: {
+				title: {
+					display: true,
+					text: scoreFile
+				}
+			},
 			scales: {
 				x: {
 					type: 'time',
@@ -58,16 +61,48 @@ function execute(commands) {
 		}
 		chart.update()
 	}
-	worker.postMessage({ action: 'exec', sql: commands });
+	worker.postMessage({ action: 'exec', sql: sqlCommand });
 }
 
-// Load a db from a file
-dbFileElm.onchange = function () {
-	var f = dbFileElm.files[0];
+function populateScoreFileButtons() {
+	worker.onmessage = function (event) {
+		var results = event.data.results;
+		if (!results) {
+			error({ message: event.data.error });
+			return;
+		}
+		noerror()
+
+		var scoreFileButtons = document.getElementById("scoreFileButtons");
+		scoreFileButtons.innerHTML = '';
+
+		for (let iScoreFile = 0; iScoreFile < results[0].values.length; iScoreFile++) {
+			var scoreFileButton = document.createElement("button");
+			var scoreFileId = results[0].values[iScoreFile][0]
+			var scoreFileName = results[0].values[iScoreFile][1]
+			scoreFileButton.textContent = scoreFileName;
+			scoreFileButton.value = scoreFileId;
+			scoreFileButton.style.fontSize = '16px';
+			scoreFileButton.style.marginInline = '8px'
+
+			scoreFileButton.onclick = function () {
+				console.log("Showing progress for score file '" + this.textContent + "'")
+				var sqlCommand = "SELECT firstreviewedtime FROM pleco_flash_scores_" + this.value + " ORDER BY firstreviewedtime ASC;"
+				showProgress(sqlCommand, this.textContent)
+			};
+			scoreFileButtons.appendChild(scoreFileButton);
+		}
+
+	}
+	worker.postMessage({ action: 'exec', sql: "SELECT id, name FROM pleco_flash_scorefiles;" });
+}
+
+loadDbButton.onchange = function () {
+	var f = loadDbButton.files[0];
 	var r = new FileReader();
 	r.onload = function () {
 		worker.onmessage = function () {
-			execute("SELECT firstreviewedtime FROM pleco_flash_scores_3 ORDER BY firstreviewedtime ASC;")
+			populateScoreFileButtons();
 		};
 		try {
 			worker.postMessage({ action: 'open', buffer: r.result }, [r.result]);
