@@ -76,21 +76,25 @@ function populateScoreFileButtons() {
 		var scoreFileButtons = document.getElementById("scoreFileButtons");
 		scoreFileButtons.innerHTML = '';
 
-		for (let iScoreFile = 0; iScoreFile < results[0].values.length; iScoreFile++) {
-			var scoreFileButton = document.createElement("button");
-			var scoreFileId = results[0].values[iScoreFile][0]
-			var scoreFileName = results[0].values[iScoreFile][1]
-			scoreFileButton.textContent = scoreFileName;
-			scoreFileButton.value = scoreFileId;
-			scoreFileButton.style.fontSize = '16px';
-			scoreFileButton.style.marginInline = '8px'
+		if (results[0].values.length > 0) {
+			scoreFileButtons.appendChild(document.createTextNode("Score Files: "))
 
-			scoreFileButton.onclick = function () {
-				console.log("Showing progress for score file '" + this.textContent + "'")
-				var sqlCommand = "SELECT firstreviewedtime FROM pleco_flash_scores_" + this.value + " ORDER BY firstreviewedtime ASC;"
-				showProgress(sqlCommand, this.textContent)
-			};
-			scoreFileButtons.appendChild(scoreFileButton);
+			for (let iScoreFile = 0; iScoreFile < results[0].values.length; iScoreFile++) {
+				var scoreFileButton = document.createElement("button");
+				var scoreFileId = results[0].values[iScoreFile][0]
+				var scoreFileName = results[0].values[iScoreFile][1]
+				scoreFileButton.textContent = scoreFileName;
+				scoreFileButton.value = scoreFileId;
+				scoreFileButton.style.fontSize = '16px';
+				scoreFileButton.style.marginInline = '8px'
+
+				scoreFileButton.onclick = function () {
+					console.log("Showing progress for score file '" + this.textContent + "'")
+					var sqlCommand = "SELECT firstreviewedtime FROM pleco_flash_scores_" + this.value + " ORDER BY firstreviewedtime ASC;"
+					showProgress(sqlCommand, this.textContent)
+				};
+				scoreFileButtons.appendChild(scoreFileButton);
+			}
 		}
 
 	}
