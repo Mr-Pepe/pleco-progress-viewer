@@ -4,7 +4,7 @@ var loadDbButton = document.getElementById('dbfile');
 const chartContext = document.getElementById('progressChart');
 const chart = new Chart(chartContext, { type: 'line' });
 
-var worker = new Worker("https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.1/worker.sql-wasm.min.js");
+var worker = new Worker("node_modules/sql.js/dist/worker.sql-wasm.min.js");
 worker.onerror = error;
 
 worker.postMessage({ action: 'open' });
